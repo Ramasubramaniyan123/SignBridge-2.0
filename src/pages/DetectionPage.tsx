@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function DetectionPage() {
   const {
-    videoRef, isDetecting, cameraReady, result,
+    videoRef, isDetecting, cameraReady, waitingForHand, result,
     startCamera, stopCamera, startDetection, stopDetection,
   } = useGestureDetector();
   const { addRecord } = useDetectionHistory();
@@ -80,6 +80,15 @@ export default function DetectionPage() {
                   <div className="absolute top-4 left-4 flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-destructive animate-pulse-glow" />
                     <span className="text-xs font-medium bg-card/80 backdrop-blur px-2 py-1 rounded text-foreground">LIVE</span>
+                  </div>
+                )}
+                {isDetecting && waitingForHand && !result && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-card/80 backdrop-blur rounded-xl px-6 py-4 text-center">
+                      <Hand className="h-10 w-10 mx-auto mb-2 text-primary animate-pulse" />
+                      <p className="text-sm font-medium text-foreground">Show a hand gesture</p>
+                      <p className="text-xs text-muted-foreground mt-1">Hold steady for detection</p>
+                    </div>
                   </div>
                 )}
                 <AnimatePresence>
