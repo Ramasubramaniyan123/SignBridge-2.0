@@ -25,6 +25,7 @@ export function useGestureDetector() {
   const intervalRef = useRef<number | null>(null);
   const busyRef = useRef(false);
   const backoffRef = useRef(0);
+  const pausedUntilRef = useRef(0);
 
   const startCamera = useCallback(async () => {
     try {
@@ -71,6 +72,10 @@ export function useGestureDetector() {
   const analyzeFrame = useCallback(async () => {
     if (busyRef.current) return;
 
+    if (Date.now() < pausedUntilRef.current) {
+      return;
+    }
+
     // Skip cycles if backing off from rate limit
     if (backoffRef.current > 0) {
       backoffRef.current--;
@@ -98,11 +103,31 @@ export function useGestureDetector() {
 
       if (!resp.ok) {
         if (resp.status === 429) {
-          backoffRef.current = Math.min((backoffRef.current || 1) * 2, 5);
-          console.warn(`Rate limited. Backing off ${backoffRef.current} cycles.`);
+          let retryAfterSeconds = 30;
+
+          const retryAfterHeader = resp.headers.get("retry-after");
+          const parsedHeader = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : NaN;
+          if (Number.isFinite(parsedHeader) && parsedHeader > 0) {
+            retryAfterSeconds = parsedHeader;
+          } else {
+            try {
+              const body = await resp.clone().json();
+              const parsedBody = Number.parseInt(String(body?.retryAfterSeconds ?? ""), 10);
+              if (Number.isFinite(parsedBody) && parsedBody > 0) {
+                retryAfterSeconds = parsedBody;
+              }
+            } catch {
+              // Ignore parse errors and use fallback
+            }
+          }
+
+          const safeRetryAfterSeconds = Math.min(120, Math.max(5, retryAfterSeconds));
+          pausedUntilRef.current = Date.now() + safeRetryAfterSeconds * 1000;
+          backoffRef.current = Math.max(backoffRef.current, Math.ceil(safeRetryAfterSeconds / 5));
+          console.warn(`Rate limited. Pausing for ${safeRetryAfterSeconds}s.`);
           toast({
             title: "Detection paused briefly",
-            description: "Rate limit reached. Will resume automatically in a few seconds.",
+            description: `Rate limit reached. Resuming automatically in about ${safeRetryAfterSeconds} seconds.`,
             variant: "destructive",
           });
         } else if (resp.status === 402) {
@@ -117,8 +142,9 @@ export function useGestureDetector() {
         return;
       }
 
-      // Reset backoff on success
+      // Reset rate-limit state on success
       backoffRef.current = 0;
+      pausedUntilRef.current = 0;
 
       const data = await resp.json();
 
@@ -148,6 +174,7 @@ export function useGestureDetector() {
       setWaitingForHand(true);
       busyRef.current = false;
       backoffRef.current = 0;
+      pausedUntilRef.current = 0;
       // Minimum 5s between AI API calls to avoid rate limits
       const effectiveInterval = Math.max(intervalMs, 5000);
       intervalRef.current = window.setInterval(analyzeFrame, effectiveInterval);
@@ -165,6 +192,7 @@ export function useGestureDetector() {
     setWaitingForHand(false);
     busyRef.current = false;
     backoffRef.current = 0;
+    pausedUntilRef.current = 0;
   }, []);
 
   useEffect(() => {

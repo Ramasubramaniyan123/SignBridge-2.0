@@ -100,10 +100,24 @@ If no hand gesture is visible or the image is unclear, use label "none" with con
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        const retryAfterHeader = response.headers.get("retry-after");
+        const parsedRetryAfter = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : NaN;
+        const retryAfterSeconds = Number.isFinite(parsedRetryAfter) && parsedRetryAfter > 0 ? parsedRetryAfter : 30;
+
+        return new Response(
+          JSON.stringify({
+            error: "Rate limit exceeded, please try again later.",
+            retryAfterSeconds,
+          }),
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json",
+              "Retry-After": String(retryAfterSeconds),
+            },
+          }
+        );
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings." }), {
