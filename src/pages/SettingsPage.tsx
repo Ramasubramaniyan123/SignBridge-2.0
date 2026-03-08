@@ -1,9 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useSettings } from "@/hooks/use-settings";
-import { Volume2, Moon, Gauge, Timer } from "lucide-react";
+import { Volume2, Gauge, Timer } from "lucide-react";
 
 export default function SettingsPage() {
   const { settings, updateSetting } = useSettings();
@@ -26,36 +26,12 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <Label className="text-base font-semibold">Text-to-Speech</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Speak detected gestures aloud
-                    </p>
+                    <p className="text-sm text-muted-foreground">Speak detected gestures aloud</p>
                   </div>
                 </div>
                 <Switch
                   checked={settings.speechEnabled}
                   onCheckedChange={(v) => updateSetting("speechEnabled", v)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <Moon className="h-5 w-5 text-accent" />
-                  </div>
-                  <div>
-                    <Label className="text-base font-semibold">Dark Mode</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Switch between light and dark themes
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={settings.darkMode}
-                  onCheckedChange={(v) => updateSetting("darkMode", v)}
                 />
               </div>
             </CardContent>
@@ -71,9 +47,7 @@ export default function SettingsPage() {
                   <Label className="text-base font-semibold">
                     Confidence Threshold: {settings.confidenceThreshold}%
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Minimum confidence to accept a detection
-                  </p>
+                  <p className="text-sm text-muted-foreground">Minimum confidence to accept a detection</p>
                 </div>
               </div>
               <Slider
@@ -96,9 +70,7 @@ export default function SettingsPage() {
                   <Label className="text-base font-semibold">
                     Detection Interval: {settings.detectionInterval}ms
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    How often to run gesture detection
-                  </p>
+                  <p className="text-sm text-muted-foreground">How often to run gesture detection</p>
                 </div>
               </div>
               <Slider
