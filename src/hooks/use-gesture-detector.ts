@@ -142,14 +142,14 @@ export function useGestureDetector() {
   }, [captureFrame]);
 
   const startDetection = useCallback(
-    (intervalMs = 4000) => {
+    (intervalMs = 5000) => {
       if (intervalRef.current) return;
       setIsDetecting(true);
       setWaitingForHand(true);
       busyRef.current = false;
       backoffRef.current = 0;
-      // Use 4s interval to avoid rate limits
-      const effectiveInterval = Math.max(intervalMs, 3000);
+      // Minimum 5s between AI API calls to avoid rate limits
+      const effectiveInterval = Math.max(intervalMs, 5000);
       intervalRef.current = window.setInterval(analyzeFrame, effectiveInterval);
     },
     [analyzeFrame]
