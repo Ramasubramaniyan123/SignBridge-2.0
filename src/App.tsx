@@ -11,6 +11,7 @@ import LearnPage from "./pages/LearnPage";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
 import AuthPage from "./pages/AuthPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/learn" element={<LearnPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

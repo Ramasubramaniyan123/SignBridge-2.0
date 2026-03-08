@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home, Camera, BookOpen, Clock, Settings, Hand, LogIn, LogOut } from "lucide-react";
+import { Home, Camera, BookOpen, Clock, Settings, Hand, LogIn, LogOut, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
@@ -65,10 +65,18 @@ export default function Layout() {
 
             {/* Auth button */}
             {user ? (
-              <Button variant="ghost" size="sm" onClick={signOut} className="hidden md:flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Button>
+              <div className="hidden md:flex items-center gap-1">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/profile">
+                    <UserCircle className="h-4 w-4 mr-2" />
+                    Profile
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={signOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
             ) : (
               <Button variant="default" size="sm" asChild className="hidden md:flex">
                 <Link to="/auth">
