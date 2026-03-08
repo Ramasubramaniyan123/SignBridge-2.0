@@ -9,7 +9,7 @@ interface Settings {
 const DEFAULT_SETTINGS: Settings = {
   speechEnabled: true,
   confidenceThreshold: 70,
-  detectionInterval: 500,
+  detectionInterval: 5000,
 };
 
 const STORAGE_KEY = "signbridge-settings";
