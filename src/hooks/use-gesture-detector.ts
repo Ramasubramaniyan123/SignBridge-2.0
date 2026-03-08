@@ -89,10 +89,18 @@ export function useGestureDetector() {
       });
 
       if (!resp.ok) {
+        if (resp.status === 429) {
+          // Rate limited — back off exponentially
+          backoffRef.current = Math.min((backoffRef.current || 1) * 2, 5);
+          console.warn(`Rate limited. Backing off ${backoffRef.current} cycles.`);
+        }
         console.error("Detection API error:", resp.status);
         busyRef.current = false;
         return;
       }
+
+      // Reset backoff on success
+      backoffRef.current = 0;
 
       const data = await resp.json();
 
