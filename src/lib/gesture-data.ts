@@ -168,6 +168,68 @@ export const GESTURES: GestureInfo[] = [
     image: "/gestures/letter-q.png", // fallback
   },
 
+  // === NUMBERS ===
+  {
+    id: "0", label: "0", category: "number",
+    description: "Number 0 in Indian Sign Language",
+    instructions: ["Form an 'O' shape with thumb and fingers", "All fingers touch the thumb tip", "Like forming a zero/circle"],
+    image: "/gestures/number-0.png",
+  },
+  {
+    id: "1", label: "1", category: "number",
+    description: "Number 1 in Indian Sign Language",
+    instructions: ["Extend your index finger upward", "Curl all other fingers into a fist", "Keep the finger straight and steady"],
+    image: "/gestures/number-1.png",
+  },
+  {
+    id: "2", label: "2", category: "number",
+    description: "Number 2 in Indian Sign Language",
+    instructions: ["Extend index and middle fingers in a V shape", "Keep other fingers curled with thumb", "Fingers point upward"],
+    image: "/gestures/letter-v.png",
+  },
+  {
+    id: "3", label: "3", category: "number",
+    description: "Number 3 in Indian Sign Language",
+    instructions: ["Extend thumb, index, and middle fingers", "Curl ring and pinky fingers", "Like showing three"],
+    image: "/gestures/letter-w.png",
+  },
+  {
+    id: "4", label: "4", category: "number",
+    description: "Number 4 in Indian Sign Language",
+    instructions: ["Extend all four fingers upward", "Thumb tucked across the palm", "Fingers held together pointing up"],
+    image: "/gestures/number-4.png",
+  },
+  {
+    id: "5", label: "5", category: "number",
+    description: "Number 5 in Indian Sign Language",
+    instructions: ["Open palm with all five fingers spread wide", "Thumb extends to the side", "Like a high-five gesture"],
+    image: "/gestures/letter-b.png",
+  },
+  {
+    id: "6", label: "6", category: "number",
+    description: "Number 6 in Indian Sign Language",
+    instructions: ["Extend thumb and pinky finger", "Curl index, middle, and ring fingers", "Like a 'hang loose' with different orientation"],
+    image: "/gestures/letter-y.png",
+  },
+  {
+    id: "7", label: "7", category: "number",
+    description: "Number 7 in Indian Sign Language",
+    instructions: ["Thumb touches ring finger tip", "Index, middle, and pinky fingers extend", "Hold hand upright"],
+    image: "/gestures/letter-f.png",
+  },
+  {
+    id: "8", label: "8", category: "number",
+    description: "Number 8 in Indian Sign Language",
+    instructions: ["Thumb touches middle finger tip", "Index, ring, and pinky extend", "Hold hand steady"],
+    image: "/gestures/letter-d.png",
+  },
+  {
+    id: "9", label: "9", category: "number",
+    description: "Number 9 in Indian Sign Language",
+    instructions: ["Thumb touches index finger tip forming a circle", "Middle, ring, and pinky fingers extend", "Like an OK sign"],
+    image: "/gestures/number-9.png",
+  },
+
   // === WORDS ===
   {
     id: "hello", label: "Hello", category: "word",

@@ -11,6 +11,7 @@ const CATEGORIES = [
   { value: "all", label: "All" },
   { value: "vowel", label: "Vowels" },
   { value: "consonant", label: "Consonants" },
+  { value: "number", label: "Numbers" },
   { value: "word", label: "Words" },
 ];
 
