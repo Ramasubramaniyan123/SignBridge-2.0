@@ -29,7 +29,7 @@ const features = [
 ];
 
 const stats = [
-  { label: "Gestures", value: "10+", icon: Sparkles },
+  { label: "Gestures", value: "40+", icon: Sparkles },
   { label: "Real-Time", value: "<200ms", icon: Zap },
   { label: "Offline", value: "Yes", icon: Globe },
 ];
