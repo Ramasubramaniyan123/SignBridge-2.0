@@ -13,6 +13,8 @@ import SettingsPage from "./pages/SettingsPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -24,6 +26,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
               <Route path="/detect" element={<DetectionPage />} />
