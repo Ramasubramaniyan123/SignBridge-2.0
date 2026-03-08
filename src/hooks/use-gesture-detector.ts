@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 
 export interface DetectionResult {
   label: string;
@@ -97,9 +98,19 @@ export function useGestureDetector() {
 
       if (!resp.ok) {
         if (resp.status === 429) {
-          // Rate limited — back off exponentially
           backoffRef.current = Math.min((backoffRef.current || 1) * 2, 5);
           console.warn(`Rate limited. Backing off ${backoffRef.current} cycles.`);
+          toast({
+            title: "Detection paused briefly",
+            description: "Rate limit reached. Will resume automatically in a few seconds.",
+            variant: "destructive",
+          });
+        } else if (resp.status === 402) {
+          toast({
+            title: "AI credits exhausted",
+            description: "Please add credits in your workspace settings to continue.",
+            variant: "destructive",
+          });
         }
         console.error("Detection API error:", resp.status);
         busyRef.current = false;
