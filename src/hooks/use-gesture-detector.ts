@@ -23,6 +23,7 @@ export function useGestureDetector() {
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<number | null>(null);
   const busyRef = useRef(false);
+  const backoffRef = useRef(0);
 
   const startCamera = useCallback(async () => {
     try {
