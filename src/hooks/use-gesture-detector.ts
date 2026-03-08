@@ -192,6 +192,7 @@ export function useGestureDetector() {
     setWaitingForHand(false);
     busyRef.current = false;
     backoffRef.current = 0;
+    pausedUntilRef.current = 0;
   }, []);
 
   useEffect(() => {
