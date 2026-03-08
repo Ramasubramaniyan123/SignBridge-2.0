@@ -68,7 +68,14 @@ export function useGestureDetector() {
 
   /** Send a frame to the AI backend for gesture detection */
   const analyzeFrame = useCallback(async () => {
-    if (busyRef.current) return; // skip if previous request still in-flight
+    if (busyRef.current) return;
+
+    // Skip cycles if backing off from rate limit
+    if (backoffRef.current > 0) {
+      backoffRef.current--;
+      return;
+    }
+
     busyRef.current = true;
 
     try {
@@ -124,13 +131,14 @@ export function useGestureDetector() {
   }, [captureFrame]);
 
   const startDetection = useCallback(
-    (intervalMs = 2500) => {
+    (intervalMs = 4000) => {
       if (intervalRef.current) return;
       setIsDetecting(true);
       setWaitingForHand(true);
       busyRef.current = false;
-      // Use a longer interval (2.5s) to avoid hitting rate limits
-      const effectiveInterval = Math.max(intervalMs, 2000);
+      backoffRef.current = 0;
+      // Use 4s interval to avoid rate limits
+      const effectiveInterval = Math.max(intervalMs, 3000);
       intervalRef.current = window.setInterval(analyzeFrame, effectiveInterval);
     },
     [analyzeFrame]
