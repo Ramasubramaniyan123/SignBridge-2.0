@@ -142,8 +142,9 @@ export function useGestureDetector() {
         return;
       }
 
-      // Reset backoff on success
+      // Reset rate-limit state on success
       backoffRef.current = 0;
+      pausedUntilRef.current = 0;
 
       const data = await resp.json();
 
