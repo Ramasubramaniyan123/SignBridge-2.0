@@ -22,7 +22,12 @@ export function useSettings() {
         const parsed = JSON.parse(stored);
         // Remove deprecated darkMode key
         const { darkMode, ...rest } = parsed;
-        return { ...DEFAULT_SETTINGS, ...rest };
+        // Force minimum detection interval for AI-based detection
+        const merged = { ...DEFAULT_SETTINGS, ...rest };
+        if (merged.detectionInterval < 5000) {
+          merged.detectionInterval = 5000;
+        }
+        return merged;
       }
     } catch {}
     return DEFAULT_SETTINGS;
