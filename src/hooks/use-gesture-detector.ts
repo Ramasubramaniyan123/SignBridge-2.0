@@ -153,6 +153,7 @@ export function useGestureDetector() {
     setResult(null);
     setWaitingForHand(false);
     busyRef.current = false;
+    backoffRef.current = 0;
   }, []);
 
   useEffect(() => {
