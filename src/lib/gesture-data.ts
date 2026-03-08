@@ -1,7 +1,7 @@
 export interface GestureInfo {
   id: string;
   label: string;
-  category: "vowel" | "consonant" | "word";
+  category: "vowel" | "consonant" | "number" | "word";
   description: string;
   instructions: string[];
   image: string;
