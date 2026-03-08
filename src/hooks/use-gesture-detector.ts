@@ -72,6 +72,10 @@ export function useGestureDetector() {
   const analyzeFrame = useCallback(async () => {
     if (busyRef.current) return;
 
+    if (Date.now() < pausedUntilRef.current) {
+      return;
+    }
+
     // Skip cycles if backing off from rate limit
     if (backoffRef.current > 0) {
       backoffRef.current--;
