@@ -1,17 +1,17 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { GESTURE_LABELS } from "@/lib/gesture-data";
 
 export interface DetectionResult {
   label: string;
   confidence: number;
   landmarks: number[][] | null;
+  reasoning?: string;
 }
 
+const DETECT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/detect-gesture`;
+
 /**
- * Gesture detector that uses the webcam.
- * Currently uses simulated detection only when a hand-like motion is
- * detected via frame differencing (no random spam).
- * In production, replace with MediaPipe Hands + TensorFlow.js.
+ * Gesture detector that captures webcam frames and sends them
+ * to the Lovable AI backend for Indian Sign Language recognition.
  */
 export function useGestureDetector() {
   const [isDetecting, setIsDetecting] = useState(false);
@@ -22,9 +22,7 @@ export function useGestureDetector() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<number | null>(null);
-  const prevFrameRef = useRef<ImageData | null>(null);
-  const stableCountRef = useRef(0);
-  const lastLabelRef = useRef<string | null>(null);
+  const busyRef = useRef(false);
 
   const startCamera = useCallback(async () => {
     try {
@@ -50,113 +48,81 @@ export function useGestureDetector() {
     setCameraReady(false);
     setResult(null);
     setWaitingForHand(false);
-    prevFrameRef.current = null;
-    stableCountRef.current = 0;
-    lastLabelRef.current = null;
   }, []);
 
-  /**
-   * Detect motion by comparing current frame to previous frame.
-   * Returns a value 0-1 representing how much of the frame changed.
-   */
-  const detectMotion = useCallback((): number => {
+  /** Capture the current video frame as a base64 data URL */
+  const captureFrame = useCallback((): string | null => {
     const video = videoRef.current;
-    if (!video || video.readyState < 2) return 0;
+    if (!video || video.readyState < 2) return null;
 
-    // Create an offscreen canvas for frame analysis
     const canvas = document.createElement("canvas");
-    const w = 160; // downscale for performance
-    const h = 120;
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return 0;
+    canvas.width = 320; // smaller for faster upload
+    canvas.height = 240;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
 
-    ctx.drawImage(video, 0, 0, w, h);
-    const currentFrame = ctx.getImageData(0, 0, w, h);
-
-    if (!prevFrameRef.current) {
-      prevFrameRef.current = currentFrame;
-      return 0;
-    }
-
-    const prev = prevFrameRef.current.data;
-    const curr = currentFrame.data;
-    let changedPixels = 0;
-    const totalPixels = w * h;
-    const threshold = 30; // per-channel difference threshold
-
-    for (let i = 0; i < curr.length; i += 4) {
-      const dr = Math.abs(curr[i] - prev[i]);
-      const dg = Math.abs(curr[i + 1] - prev[i + 1]);
-      const db = Math.abs(curr[i + 2] - prev[i + 2]);
-      if (dr + dg + db > threshold * 3) {
-        changedPixels++;
-      }
-    }
-
-    prevFrameRef.current = currentFrame;
-    return changedPixels / totalPixels;
+    ctx.drawImage(video, 0, 0, 320, 240);
+    return canvas.toDataURL("image/jpeg", 0.7);
   }, []);
 
-  /**
-   * Only "detect" a gesture when there is significant motion in the frame,
-   * simulating waiting for a user to show a hand gesture.
-   * Requires the motion to be stable (present for multiple frames) before
-   * committing to a detection.
-   */
-  const analyzeFrame = useCallback(() => {
-    const motionLevel = detectMotion();
+  /** Send a frame to the AI backend for gesture detection */
+  const analyzeFrame = useCallback(async () => {
+    if (busyRef.current) return; // skip if previous request still in-flight
+    busyRef.current = true;
 
-    // Need at least 5% of pixels changing to consider it a hand
-    if (motionLevel < 0.05) {
-      stableCountRef.current = 0;
-      lastLabelRef.current = null;
-      setResult(null);
-      setWaitingForHand(true);
-      return;
-    }
+    try {
+      const image = captureFrame();
+      if (!image) {
+        setWaitingForHand(true);
+        busyRef.current = false;
+        return;
+      }
 
-    setWaitingForHand(false);
-
-    // Pick a label and require it to be "stable" for 3 consecutive frames
-    if (!lastLabelRef.current) {
-      lastLabelRef.current =
-        GESTURE_LABELS[Math.floor(Math.random() * GESTURE_LABELS.length)];
-      stableCountRef.current = 1;
-      return;
-    }
-
-    stableCountRef.current++;
-
-    // Only emit a result after 3 stable frames (~1.5s at 500ms interval)
-    if (stableCountRef.current >= 3) {
-      const confidence = Math.round(75 + Math.random() * 23);
-      const landmarks = Array.from({ length: 21 }, () => [
-        Math.random() * 0.4 + 0.3,
-        Math.random() * 0.4 + 0.3,
-        Math.random() * 0.1,
-      ]);
-      setResult({
-        label: lastLabelRef.current,
-        confidence,
-        landmarks,
+      const resp = await fetch(DETECT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ image }),
       });
-      // Reset so next detection needs fresh motion
-      stableCountRef.current = 0;
-      lastLabelRef.current = null;
+
+      if (!resp.ok) {
+        console.error("Detection API error:", resp.status);
+        busyRef.current = false;
+        return;
+      }
+
+      const data = await resp.json();
+
+      if (!data.label || data.label === "none" || data.confidence < 30) {
+        setResult(null);
+        setWaitingForHand(true);
+      } else {
+        setResult({
+          label: data.label,
+          confidence: data.confidence,
+          landmarks: null,
+          reasoning: data.reasoning,
+        });
+        setWaitingForHand(false);
+      }
+    } catch (err) {
+      console.error("Detection error:", err);
+    } finally {
+      busyRef.current = false;
     }
-  }, [detectMotion]);
+  }, [captureFrame]);
 
   const startDetection = useCallback(
-    (intervalMs = 500) => {
+    (intervalMs = 2500) => {
       if (intervalRef.current) return;
       setIsDetecting(true);
       setWaitingForHand(true);
-      prevFrameRef.current = null;
-      stableCountRef.current = 0;
-      lastLabelRef.current = null;
-      intervalRef.current = window.setInterval(analyzeFrame, intervalMs);
+      busyRef.current = false;
+      // Use a longer interval (2.5s) to avoid hitting rate limits
+      const effectiveInterval = Math.max(intervalMs, 2000);
+      intervalRef.current = window.setInterval(analyzeFrame, effectiveInterval);
     },
     [analyzeFrame]
   );
@@ -169,9 +135,7 @@ export function useGestureDetector() {
     setIsDetecting(false);
     setResult(null);
     setWaitingForHand(false);
-    prevFrameRef.current = null;
-    stableCountRef.current = 0;
-    lastLabelRef.current = null;
+    busyRef.current = false;
   }, []);
 
   useEffect(() => {
