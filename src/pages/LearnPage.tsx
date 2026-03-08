@@ -11,6 +11,7 @@ const CATEGORIES = [
   { value: "all", label: "All" },
   { value: "vowel", label: "Vowels" },
   { value: "consonant", label: "Consonants" },
+  { value: "number", label: "Numbers" },
   { value: "word", label: "Words" },
 ];
 
@@ -33,7 +34,7 @@ export default function LearnPage() {
             Learn Indian Sign Language
           </h1>
           <p className="text-muted-foreground">
-            Browse {GESTURES.length} gesture cards — all 26 alphabets and common words.
+            Browse {GESTURES.length} gesture cards — alphabets, numbers, and common words.
           </p>
         </div>
 

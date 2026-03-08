@@ -55,7 +55,7 @@ export default function DetectionPage() {
         <div className="mb-8">
           <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">Gesture Detection</h1>
           <p className="text-muted-foreground">
-            Detects all 26 alphabets and {GESTURES.filter(g => g.category === "word").length} common words in real time.
+            Detects all 26 alphabets, numbers 0-9, and {GESTURES.filter(g => g.category === "word").length} common words in real time.
           </p>
         </div>
 
