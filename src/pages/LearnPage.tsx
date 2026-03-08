@@ -2,79 +2,109 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { GESTURES, type GestureInfo } from "@/lib/gesture-data";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, X, ChevronRight } from "lucide-react";
+import { BookOpen, X, ChevronRight, Search } from "lucide-react";
 
 const CATEGORIES = [
   { value: "all", label: "All" },
   { value: "vowel", label: "Vowels" },
+  { value: "consonant", label: "Consonants" },
   { value: "word", label: "Words" },
 ];
 
 export default function LearnPage() {
   const [category, setCategory] = useState("all");
   const [selected, setSelected] = useState<GestureInfo | null>(null);
+  const [search, setSearch] = useState("");
 
-  const filtered =
-    category === "all" ? GESTURES : GESTURES.filter((g) => g.category === category);
+  const filtered = GESTURES.filter((g) => {
+    const matchCategory = category === "all" || g.category === category;
+    const matchSearch = g.label.toLowerCase().includes(search.toLowerCase());
+    return matchCategory && matchSearch;
+  });
 
   return (
     <div className="container py-6 md:py-10 pb-24 md:pb-10">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="mb-8">
           <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
             Learn Indian Sign Language
           </h1>
           <p className="text-muted-foreground">
-            Browse gesture cards and learn how to perform each sign.
+            Browse {GESTURES.length} gesture cards — all 26 alphabets and common words.
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 mb-8">
-          {CATEGORIES.map((cat) => (
-            <Button
-              key={cat.value}
-              variant={category === cat.value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCategory(cat.value)}
-            >
-              {cat.label}
-            </Button>
-          ))}
+        {/* Search + Filters */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search gestures..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {CATEGORIES.map((cat) => (
+              <Button
+                key={cat.value}
+                variant={category === cat.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCategory(cat.value)}
+              >
+                {cat.label}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filtered.map((gesture, i) => (
             <motion.div
               key={gesture.id}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
+              transition={{ duration: 0.25, delay: Math.min(i * 0.03, 0.5) }}
             >
               <Card
                 className="group cursor-pointer hover:shadow-md hover:border-primary/30 transition-all"
                 onClick={() => setSelected(gesture)}
               >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-4xl">{gesture.emoji}</span>
-                    <Badge variant="secondary" className="text-xs capitalize">
+                <CardContent className="p-4">
+                  <div className="aspect-square rounded-lg bg-secondary/30 overflow-hidden mb-3">
+                    <img
+                      src={gesture.image}
+                      alt={`ISL sign for ${gesture.label}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-display text-lg font-semibold">{gesture.label}</h3>
+                    <Badge variant="secondary" className="text-[10px] capitalize">
                       {gesture.category}
                     </Badge>
                   </div>
-                  <h3 className="font-display text-xl font-semibold mb-1">{gesture.label}</h3>
-                  <p className="text-sm text-muted-foreground">{gesture.description}</p>
-                  <div className="flex items-center gap-1 mt-3 text-xs text-primary font-medium group-hover:gap-2 transition-all">
-                    Learn more <ChevronRight className="h-3 w-3" />
+                  <div className="flex items-center gap-1 text-xs text-primary font-medium group-hover:gap-2 transition-all">
+                    Learn <ChevronRight className="h-3 w-3" />
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
+
+        {filtered.length === 0 && (
+          <div className="text-center py-16 text-muted-foreground">
+            <p className="text-lg">No gestures found</p>
+            <p className="text-sm mt-1">Try a different search or category.</p>
+          </div>
+        )}
 
         {/* Detail modal */}
         <AnimatePresence>
@@ -97,10 +127,19 @@ export default function LearnPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4">
-                        <span className="text-5xl">{selected.emoji}</span>
+                        <div className="h-20 w-20 rounded-xl overflow-hidden bg-secondary/30 flex-shrink-0">
+                          <img
+                            src={selected.image}
+                            alt={`ISL sign for ${selected.label}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                         <div>
                           <CardTitle className="font-display text-2xl">{selected.label}</CardTitle>
                           <CardDescription>{selected.description}</CardDescription>
+                          <Badge variant="secondary" className="mt-1 text-xs capitalize">
+                            {selected.category}
+                          </Badge>
                         </div>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => setSelected(null)}>

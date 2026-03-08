@@ -8,18 +8,13 @@ import { useGestureDetector } from "@/hooks/use-gesture-detector";
 import { useDetectionHistory } from "@/hooks/use-detection-history";
 import { useSettings } from "@/hooks/use-settings";
 import { speak } from "@/lib/speech";
+import { getGestureByLabel, GESTURES } from "@/lib/gesture-data";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function DetectionPage() {
   const {
-    videoRef,
-    isDetecting,
-    cameraReady,
-    result,
-    startCamera,
-    stopCamera,
-    startDetection,
-    stopDetection,
+    videoRef, isDetecting, cameraReady, result,
+    startCamera, stopCamera, startDetection, stopDetection,
   } = useGestureDetector();
   const { addRecord } = useDetectionHistory();
   const { settings } = useSettings();
@@ -35,7 +30,6 @@ export default function DetectionPage() {
     }
   }, [isDetecting, startCamera, stopCamera, startDetection, stopDetection, settings.detectionInterval]);
 
-  // Handle detected gesture
   useEffect(() => {
     if (result && result.confidence >= settings.confidenceThreshold) {
       addRecord(result.label, result.confidence);
@@ -46,25 +40,22 @@ export default function DetectionPage() {
     }
   }, [result, settings.speechEnabled, settings.confidenceThreshold, addRecord]);
 
-  // Reset last spoken after a pause
   useEffect(() => {
     if (!result) {
-      const timeout = setTimeout(() => {
-        lastSpokenRef.current = "";
-      }, 1500);
+      const timeout = setTimeout(() => { lastSpokenRef.current = ""; }, 1500);
       return () => clearTimeout(timeout);
     }
   }, [result]);
+
+  const gestureInfo = result ? getGestureByLabel(result.label) : null;
 
   return (
     <div className="container py-6 md:py-10 pb-24 md:pb-10">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
-            Gesture Detection
-          </h1>
+          <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">Gesture Detection</h1>
           <p className="text-muted-foreground">
-            Position your hand in front of the camera to detect ISL gestures.
+            Detects all 26 alphabets and {GESTURES.filter(g => g.category === "word").length} common words in real time.
           </p>
         </div>
 
@@ -75,31 +66,22 @@ export default function DetectionPage() {
               <div className="relative aspect-[4/3] bg-secondary/50">
                 <video
                   ref={videoRef}
-                  className="absolute inset-0 w-full h-full object-cover mirror"
+                  className="absolute inset-0 w-full h-full object-cover"
                   style={{ transform: "scaleX(-1)" }}
-                  autoPlay
-                  playsInline
-                  muted
+                  autoPlay playsInline muted
                 />
-
                 {!cameraReady && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
                     <Hand className="h-16 w-16 mb-4 opacity-30" />
                     <p className="text-sm">Camera preview will appear here</p>
                   </div>
                 )}
-
-                {/* Detection indicator */}
                 {isDetecting && (
                   <div className="absolute top-4 left-4 flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-destructive animate-pulse-glow" />
-                    <span className="text-xs font-medium bg-card/80 backdrop-blur px-2 py-1 rounded text-foreground">
-                      LIVE
-                    </span>
+                    <span className="text-xs font-medium bg-card/80 backdrop-blur px-2 py-1 rounded text-foreground">LIVE</span>
                   </div>
                 )}
-
-                {/* Result overlay */}
                 <AnimatePresence>
                   {result && isDetecting && (
                     <motion.div
@@ -110,16 +92,16 @@ export default function DetectionPage() {
                     >
                       <div className="glass rounded-xl p-4">
                         <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider">Detected</p>
-                            <p className="font-display text-2xl font-bold text-foreground">
-                              {result.label}
-                            </p>
+                          <div className="flex items-center gap-3">
+                            {gestureInfo && (
+                              <img src={gestureInfo.image} alt={result.label} className="h-12 w-12 rounded-lg object-cover" />
+                            )}
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wider">Detected</p>
+                              <p className="font-display text-2xl font-bold text-foreground">{result.label}</p>
+                            </div>
                           </div>
-                          <Badge
-                            variant={result.confidence >= 90 ? "default" : "secondary"}
-                            className="text-lg px-3 py-1"
-                          >
+                          <Badge variant={result.confidence >= 90 ? "default" : "secondary"} className="text-lg px-3 py-1">
                             {result.confidence}%
                           </Badge>
                         </div>
@@ -129,32 +111,13 @@ export default function DetectionPage() {
                   )}
                 </AnimatePresence>
               </div>
-
               <CardContent className="p-4 flex items-center justify-between">
                 <Button onClick={handleToggle} size="lg" variant={isDetecting ? "destructive" : "default"}>
-                  {isDetecting ? (
-                    <>
-                      <CameraOff className="mr-2 h-5 w-5" /> Stop Detection
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="mr-2 h-5 w-5" /> Start Detection
-                    </>
-                  )}
+                  {isDetecting ? (<><CameraOff className="mr-2 h-5 w-5" /> Stop</>) : (<><Camera className="mr-2 h-5 w-5" /> Start Detection</>)}
                 </Button>
-
                 {result && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => speak(result.label)}
-                    title="Speak detected gesture"
-                  >
-                    {settings.speechEnabled ? (
-                      <Volume2 className="h-5 w-5" />
-                    ) : (
-                      <VolumeX className="h-5 w-5" />
-                    )}
+                  <Button variant="outline" size="icon" onClick={() => speak(result.label)} title="Speak detected gesture">
+                    {settings.speechEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                   </Button>
                 )}
               </CardContent>
@@ -165,25 +128,15 @@ export default function DetectionPage() {
           <div className="space-y-4">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                  Current Detection
-                </CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Current Detection</CardTitle>
               </CardHeader>
               <CardContent>
-                {result ? (
+                {result && gestureInfo ? (
                   <div className="text-center py-4">
-                    <p className="text-5xl mb-3">
-                      {result.label === "Hello" && "👋"}
-                      {result.label === "Thank You" && "🙏"}
-                      {result.label === "Yes" && "👍"}
-                      {result.label === "No" && "👎"}
-                      {result.label === "Help" && "🆘"}
-                      {["A", "E", "I", "O", "U"].includes(result.label) && "🤟"}
-                    </p>
+                    <img src={gestureInfo.image} alt={result.label} className="h-24 w-24 mx-auto rounded-xl object-cover mb-3" />
                     <p className="font-display text-2xl font-bold">{result.label}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Confidence: {result.confidence}%
-                    </p>
+                    <Badge variant="secondary" className="mt-1 text-xs capitalize">{gestureInfo.category}</Badge>
+                    <p className="text-sm text-muted-foreground mt-2">Confidence: {result.confidence}%</p>
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
@@ -197,27 +150,21 @@ export default function DetectionPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                  Supported Gestures
+                  Supported ({GESTURES.length} Gestures)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {["A", "E", "I", "O", "U", "Hello", "Thank You", "Yes", "No", "Help"].map(
-                    (g) => (
-                      <Badge key={g} variant="outline" className="text-xs">
-                        {g}
-                      </Badge>
-                    )
-                  )}
+                <div className="flex flex-wrap gap-1.5">
+                  {GESTURES.map((g) => (
+                    <Badge key={g.id} variant="outline" className="text-[10px]">{g.label}</Badge>
+                  ))}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                  Tips
-                </CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Tips</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-2">
                 <p>• Ensure good lighting</p>
