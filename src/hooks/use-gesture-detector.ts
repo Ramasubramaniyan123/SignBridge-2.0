@@ -174,6 +174,7 @@ export function useGestureDetector() {
       setWaitingForHand(true);
       busyRef.current = false;
       backoffRef.current = 0;
+      pausedUntilRef.current = 0;
       // Minimum 5s between AI API calls to avoid rate limits
       const effectiveInterval = Math.max(intervalMs, 5000);
       intervalRef.current = window.setInterval(analyzeFrame, effectiveInterval);
