@@ -23,6 +23,7 @@ export function useGestureDetector() {
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<number | null>(null);
   const busyRef = useRef(false);
+  const backoffRef = useRef(0);
 
   const startCamera = useCallback(async () => {
     try {
@@ -67,7 +68,14 @@ export function useGestureDetector() {
 
   /** Send a frame to the AI backend for gesture detection */
   const analyzeFrame = useCallback(async () => {
-    if (busyRef.current) return; // skip if previous request still in-flight
+    if (busyRef.current) return;
+
+    // Skip cycles if backing off from rate limit
+    if (backoffRef.current > 0) {
+      backoffRef.current--;
+      return;
+    }
+
     busyRef.current = true;
 
     try {
@@ -88,10 +96,18 @@ export function useGestureDetector() {
       });
 
       if (!resp.ok) {
+        if (resp.status === 429) {
+          // Rate limited — back off exponentially
+          backoffRef.current = Math.min((backoffRef.current || 1) * 2, 5);
+          console.warn(`Rate limited. Backing off ${backoffRef.current} cycles.`);
+        }
         console.error("Detection API error:", resp.status);
         busyRef.current = false;
         return;
       }
+
+      // Reset backoff on success
+      backoffRef.current = 0;
 
       const data = await resp.json();
 
@@ -115,13 +131,14 @@ export function useGestureDetector() {
   }, [captureFrame]);
 
   const startDetection = useCallback(
-    (intervalMs = 2500) => {
+    (intervalMs = 4000) => {
       if (intervalRef.current) return;
       setIsDetecting(true);
       setWaitingForHand(true);
       busyRef.current = false;
-      // Use a longer interval (2.5s) to avoid hitting rate limits
-      const effectiveInterval = Math.max(intervalMs, 2000);
+      backoffRef.current = 0;
+      // Use 4s interval to avoid rate limits
+      const effectiveInterval = Math.max(intervalMs, 3000);
       intervalRef.current = window.setInterval(analyzeFrame, effectiveInterval);
     },
     [analyzeFrame]
@@ -136,6 +153,7 @@ export function useGestureDetector() {
     setResult(null);
     setWaitingForHand(false);
     busyRef.current = false;
+    backoffRef.current = 0;
   }, []);
 
   useEffect(() => {
