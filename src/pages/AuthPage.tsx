@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Hand, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Hand, Mail, Lock, User, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+type View = "signin" | "signup" | "forgot";
+
 export default function AuthPage() {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [view, setView] = useState<View>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -20,6 +23,24 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (view === "forgot") {
+      if (!email.trim()) return;
+      setLoading(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast({ title: "Reset link sent!", description: "Check your email for a password reset link." });
+        setView("signin");
+      } catch (err: any) {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!email.trim() || !password.trim()) return;
     if (password.length < 6) {
       toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
@@ -28,10 +49,11 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      if (isSignUp) {
+      if (view === "signup") {
         const { error } = await signUp(email, password, displayName || undefined);
         if (error) throw error;
-        toast({ title: "Account created!", description: "Please check your email to verify your account." });
+        toast({ title: "Account created!", description: "You can now sign in." });
+        setView("signin");
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
@@ -43,6 +65,12 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const titles: Record<View, { title: string; desc: string }> = {
+    signin: { title: "Welcome Back", desc: "Sign in to continue" },
+    signup: { title: "Create Account", desc: "Sign up to save your detection history" },
+    forgot: { title: "Reset Password", desc: "Enter your email to receive a reset link" },
   };
 
   return (
@@ -62,14 +90,12 @@ export default function AuthPage() {
 
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">{isSignUp ? "Create Account" : "Welcome Back"}</CardTitle>
-            <CardDescription>
-              {isSignUp ? "Sign up to save your detection history" : "Sign in to continue"}
-            </CardDescription>
+            <CardTitle className="text-xl">{titles[view].title}</CardTitle>
+            <CardDescription>{titles[view].desc}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {isSignUp && (
+              {view === "signup" && (
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -92,41 +118,72 @@ export default function AuthPage() {
                   required
                 />
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9 pr-9"
-                  required
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              {view !== "forgot" && (
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-9 pr-9"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              )}
+
+              {view === "signin" && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setView("forgot")}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
               <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
+                {loading
+                  ? "Please wait..."
+                  : view === "signup"
+                  ? "Create Account"
+                  : view === "forgot"
+                  ? "Send Reset Link"
+                  : "Sign In"}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm">
-              <span className="text-muted-foreground">
-                {isSignUp ? "Already have an account?" : "Don't have an account?"}
-              </span>{" "}
-              <button
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-primary font-medium hover:underline"
-              >
-                {isSignUp ? "Sign in" : "Sign up"}
-              </button>
+              {view === "forgot" ? (
+                <button
+                  onClick={() => setView("signin")}
+                  className="text-primary font-medium hover:underline inline-flex items-center gap-1"
+                >
+                  <ArrowLeft className="h-3 w-3" /> Back to sign in
+                </button>
+              ) : (
+                <>
+                  <span className="text-muted-foreground">
+                    {view === "signup" ? "Already have an account?" : "Don't have an account?"}
+                  </span>{" "}
+                  <button
+                    onClick={() => setView(view === "signup" ? "signin" : "signup")}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    {view === "signup" ? "Sign in" : "Sign up"}
+                  </button>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
