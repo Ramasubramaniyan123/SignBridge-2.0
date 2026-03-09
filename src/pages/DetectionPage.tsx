@@ -10,6 +10,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { speak } from "@/lib/speech";
 import { getGestureByLabel, GESTURES, GESTURE_LABELS } from "@/lib/gesture-data";
 import { motion, AnimatePresence } from "framer-motion";
+import { DetectionCountdown } from "@/components/DetectionCountdown";
 
 interface UploadResult {
   label: string;
