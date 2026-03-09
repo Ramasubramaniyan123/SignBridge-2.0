@@ -1,19 +1,26 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { MessageCircle, X, Send, Hand, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Hand, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { streamChat } from "@/lib/chat-stream";
+import { useChatHistory } from "@/hooks/use-chat-history";
 import { cn } from "@/lib/utils";
-
-type Msg = { role: "user" | "assistant"; content: string };
 
 export function ChatBot() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const {
+    messages,
+    addMessage,
+    updateLastAssistantMessage,
+    clearHistory,
+    loading: historyLoading,
+    isAuthenticated,
+  } = useChatHistory();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -25,47 +32,38 @@ export function ChatBot() {
     const text = input.trim();
     if (!text || isLoading) return;
 
-    const userMsg: Msg = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    const userMsg = { role: "user" as const, content: text };
+    await addMessage(userMsg);
     setInput("");
     setIsLoading(true);
 
     let assistantSoFar = "";
 
-    const upsertAssistant = (chunk: string) => {
-      assistantSoFar += chunk;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant") {
-          return prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
-          );
-        }
-        return [...prev, { role: "assistant", content: assistantSoFar }];
-      });
-    };
-
     try {
       await streamChat({
         messages: [...messages, userMsg],
-        onDelta: upsertAssistant,
-        onDone: () => setIsLoading(false),
-        onError: (errMsg) => {
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", content: `⚠️ ${errMsg}` },
-          ]);
+        onDelta: (chunk) => {
+          assistantSoFar += chunk;
+          updateLastAssistantMessage(assistantSoFar, false);
+        },
+        onDone: async () => {
+          // Save the complete assistant message
+          if (assistantSoFar) {
+            await updateLastAssistantMessage(assistantSoFar, true);
+          }
+          setIsLoading(false);
+        },
+        onError: async (errMsg) => {
+          const errorContent = `⚠️ ${errMsg}`;
+          await addMessage({ role: "assistant", content: errorContent });
           setIsLoading(false);
         },
       });
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "⚠️ Failed to connect. Please try again." },
-      ]);
+      await addMessage({ role: "assistant", content: "⚠️ Failed to connect. Please try again." });
       setIsLoading(false);
     }
-  }, [input, isLoading, messages]);
+  }, [input, isLoading, messages, addMessage, updateLastAssistantMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -118,26 +116,44 @@ export function ChatBot() {
                     <p className="text-[10px] text-muted-foreground">Ask about ISL gestures & more</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {messages.length > 0 && isAuthenticated && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={clearHistory}
+                      className="h-8 w-8"
+                      title="Clear chat history"
+                    >
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Messages */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 && (
+                {historyLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : messages.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Hand className="h-10 w-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm font-medium">Hi there! 👋</p>
                     <p className="text-xs mt-1">Ask me anything about Indian Sign Language.</p>
+                    {!isAuthenticated && (
+                      <p className="text-xs mt-3 text-amber-600">Sign in to save your chat history.</p>
+                    )}
                     <div className="mt-4 flex flex-wrap justify-center gap-2">
                       {["How do I sign 'Hello'?", "Tips for better detection", "What letters are supported?"].map(
                         (q) => (
                           <button
                             key={q}
-                            onClick={() => {
-                              setInput(q);
-                            }}
+                            onClick={() => setInput(q)}
                             className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-secondary transition-colors"
                           >
                             {q}
@@ -146,34 +162,34 @@ export function ChatBot() {
                       )}
                     </div>
                   </div>
-                )}
-
-                {messages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "flex",
-                      msg.role === "user" ? "justify-end" : "justify-start"
-                    )}
-                  >
+                ) : (
+                  messages.map((msg, i) => (
                     <div
+                      key={i}
                       className={cn(
-                        "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-secondary text-secondary-foreground rounded-bl-md"
+                        "flex",
+                        msg.role === "user" ? "justify-end" : "justify-start"
                       )}
                     >
-                      {msg.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
-                        </div>
-                      ) : (
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                      )}
+                      <div
+                        className={cn(
+                          "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
+                          msg.role === "user"
+                            ? "bg-primary text-primary-foreground rounded-br-md"
+                            : "bg-secondary text-secondary-foreground rounded-bl-md"
+                        )}
+                      >
+                        {msg.role === "assistant" ? (
+                          <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
 
                 {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                   <div className="flex justify-start">
