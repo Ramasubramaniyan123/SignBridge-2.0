@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { ChatBot } from "@/components/ChatBot";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Home" },
