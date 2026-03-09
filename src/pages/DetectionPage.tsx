@@ -142,9 +142,12 @@ export default function DetectionPage() {
                       </div>
                     )}
                     {isDetecting && (
-                      <div className="absolute top-4 left-4 flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-destructive animate-pulse-glow" />
-                        <span className="text-xs font-medium bg-card/80 backdrop-blur px-2 py-1 rounded text-foreground">LIVE</span>
+                      <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full bg-destructive animate-pulse-glow" />
+                          <span className="text-xs font-medium bg-card/80 backdrop-blur px-2 py-1 rounded text-foreground">LIVE</span>
+                        </div>
+                        <DetectionCountdown intervalMs={settings.detectionInterval} isDetecting={isDetecting} />
                       </div>
                     )}
                     {isDetecting && waitingForHand && !result && (
