@@ -146,7 +146,7 @@ export function ChatBot() {
                     <p className="text-sm font-medium">Hi there! 👋</p>
                     <p className="text-xs mt-1">Ask me anything about Indian Sign Language.</p>
                     {!isAuthenticated && (
-                      <p className="text-xs mt-3 text-amber-600">Sign in to save your chat history.</p>
+                      <p className="text-xs mt-3 text-warning">Sign in to save your chat history.</p>
                     )}
                     <div className="mt-4 flex flex-wrap justify-center gap-2">
                       {["How do I sign 'Hello'?", "Tips for better detection", "What letters are supported?"].map(
