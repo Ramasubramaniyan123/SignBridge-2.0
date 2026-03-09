@@ -148,6 +148,22 @@ export function useGestureDetector() {
 
       const data = await resp.json();
 
+      // Server may return a 200 with `rateLimited: true` to prevent 429 from being treated as fatal.
+      if (data?.rateLimited) {
+        const retryAfterSecondsRaw = Number.parseInt(String(data?.retryAfterSeconds ?? "30"), 10);
+        const safeRetryAfterSeconds = Math.min(120, Math.max(5, Number.isFinite(retryAfterSecondsRaw) ? retryAfterSecondsRaw : 30));
+        pausedUntilRef.current = Date.now() + safeRetryAfterSeconds * 1000;
+        backoffRef.current = Math.max(backoffRef.current, Math.ceil(safeRetryAfterSeconds / 5));
+        toast({
+          title: "Detection paused briefly",
+          description: `Rate limit reached. Resuming automatically in about ${safeRetryAfterSeconds} seconds.`,
+          variant: "destructive",
+        });
+        setResult(null);
+        setWaitingForHand(true);
+        return;
+      }
+
       if (!data.label || data.label === "none" || data.confidence < 30) {
         setResult(null);
         setWaitingForHand(true);
