@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Home, Camera, BookOpen, Clock, Settings, Hand, LogIn, LogOut, UserCircle } from "lucide-react";
+import { Home, Camera, BookOpen, Clock, Settings, Hand, LogIn, LogOut, UserCircle, BookOpenText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/detect", icon: Camera, label: "Detect" },
   { to: "/learn", icon: BookOpen, label: "Learn" },
+  { to: "/dictionary", icon: BookOpenText, label: "Dictionary" },
   { to: "/history", icon: Clock, label: "History" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
@@ -101,7 +102,7 @@ export default function Layout() {
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/50">
         <div className="flex items-center justify-around h-16">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.slice(0, 5).map((item) => {
             const active = location.pathname === item.to;
             return (
               <Link
