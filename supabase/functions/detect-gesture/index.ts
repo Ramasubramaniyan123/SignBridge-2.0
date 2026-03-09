@@ -104,16 +104,20 @@ If no hand gesture is visible or the image is unclear, use label "none" with con
         const parsedRetryAfter = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : NaN;
         const retryAfterSeconds = Number.isFinite(parsedRetryAfter) && parsedRetryAfter > 0 ? parsedRetryAfter : 30;
 
+        // Return HTTP 200 so the caller/UI doesn't treat rate-limits as a fatal runtime error;
+        // clients should respect `rateLimited` and pause before sending more frames.
         return new Response(
           JSON.stringify({
-            error: "Rate limit exceeded, please try again later.",
+            rateLimited: true,
             retryAfterSeconds,
+            error: "Rate limit exceeded, please try again later.",
           }),
           {
-            status: 429,
+            status: 200,
             headers: {
               ...corsHeaders,
               "Content-Type": "application/json",
+              "X-Rate-Limited": "true",
               "Retry-After": String(retryAfterSeconds),
             },
           }
@@ -143,10 +147,10 @@ If no hand gesture is visible or the image is unclear, use label "none" with con
     }
 
     const result = JSON.parse(toolCall.function.arguments);
-    
+
     // Validate and normalize the label
     const matchedLabel = GESTURE_LABELS.find(
-      (l) => l.toLowerCase() === result.label?.toLowerCase()
+      (l) => l.toLowerCase() === result.label?.toLowerCase(),
     );
 
     return new Response(
@@ -155,13 +159,13 @@ If no hand gesture is visible or the image is unclear, use label "none" with con
         confidence: Math.min(100, Math.max(0, Math.round(result.confidence || 0))),
         reasoning: result.reasoning || "",
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("detect-gesture error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
