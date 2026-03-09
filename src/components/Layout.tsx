@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { ChatBot } from "@/components/ChatBot";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Home" },
@@ -93,6 +94,9 @@ export default function Layout() {
       <main className="flex-1">
         <Outlet />
       </main>
+
+      {/* AI Chatbot */}
+      <ChatBot />
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/50">

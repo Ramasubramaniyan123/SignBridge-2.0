@@ -2,3 +2,6 @@ project_id = "rpjlmrockckkqlafseir"
 
 [functions.detect-gesture]
 verify_jwt = false
+
+[functions.chat]
+verify_jwt = false
