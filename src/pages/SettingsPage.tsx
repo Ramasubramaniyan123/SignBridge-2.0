@@ -3,10 +3,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useSettings } from "@/hooks/use-settings";
-import { Volume2, Gauge, Timer } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Volume2, Gauge, Timer, Moon, Sun, Monitor } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function SettingsPage() {
   const { settings, updateSetting } = useSettings();
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="container py-6 md:py-10 pb-24 md:pb-10">
@@ -17,6 +20,53 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-4">
+          {/* Theme */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Moon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <Label className="text-base font-semibold">Appearance</Label>
+                    <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
+                  <Button
+                    variant={theme === "light" ? "default" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setTheme("light")}
+                    title="Light"
+                  >
+                    <Sun className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={theme === "dark" ? "default" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setTheme("dark")}
+                    title="Dark"
+                  >
+                    <Moon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={theme === "system" ? "default" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setTheme("system")}
+                    title="System"
+                  >
+                    <Monitor className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Text-to-Speech */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -37,6 +87,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/* Confidence */}
           <Card>
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center gap-3">
@@ -60,6 +111,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/* Detection Interval */}
           <Card>
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center gap-3">
@@ -76,9 +128,9 @@ export default function SettingsPage() {
               <Slider
                 value={[settings.detectionInterval]}
                 onValueChange={([v]) => updateSetting("detectionInterval", v)}
-                min={200}
-                max={2000}
-                step={100}
+                min={5000}
+                max={15000}
+                step={500}
               />
             </CardContent>
           </Card>
