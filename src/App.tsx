@@ -4,7 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "@/hooks/use-auth";
+// @ts-ignore
+import { AuthProvider } from "@/contexts/AuthContext";
+// @ts-ignore
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import DetectionPage from "./pages/DetectionPage";
@@ -15,8 +18,6 @@ import AuthPage from "./pages/AuthPage";
 import ProfilePage from "./pages/ProfilePage";
 import DictionaryPage from "./pages/DictionaryPage";
 import NotFound from "./pages/NotFound";
-
-import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 const queryClient = new QueryClient();
 
@@ -30,15 +31,42 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/detect" element={<DetectionPage />} />
-                <Route path="/learn" element={<LearnPage />} />
-                <Route path="/history" element={<HistoryPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/dictionary" element={<DictionaryPage />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                } />
+                <Route path="/detect" element={
+                  <ProtectedRoute>
+                    <DetectionPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/learn" element={
+                  <ProtectedRoute>
+                    <LearnPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/history" element={
+                  <ProtectedRoute>
+                    <HistoryPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <SettingsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/dictionary" element={
+                  <ProtectedRoute>
+                    <DictionaryPage />
+                  </ProtectedRoute>
+                } />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

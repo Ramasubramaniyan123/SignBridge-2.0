@@ -1,3 +1,4 @@
+// @ts-nocheck - Deno runtime types
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -12,7 +13,7 @@ const GESTURE_LABELS = [
   "Hello","Thank You","Yes","No","Help","Goodbye","Sorry","Please","I Love You","Friend","Water","Food","Home","School","Good","Bad",
 ];
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,138 +27,67 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "API key not configured" }), {
+    // TODO: Replace with your custom API endpoint
+    // This is where you'll integrate your own gesture detection API
+    const CUSTOM_API_ENDPOINT = Deno.env.get("CUSTOM_GESTURE_API_ENDPOINT");
+    const CUSTOM_API_KEY = Deno.env.get("CUSTOM_GESTURE_API_KEY");
+    
+    if (!CUSTOM_API_ENDPOINT) {
+      return new Response(JSON.stringify({ 
+        error: "Custom API endpoint not configured",
+        message: "Please set CUSTOM_GESTURE_API_ENDPOINT environment variable"
+      }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const systemPrompt = `You are an Indian Sign Language (ISL) gesture recognition expert. Analyze the provided image and identify the hand gesture being shown.
-
-You MUST respond by calling the detect_gesture function with your analysis. Look for hand shapes, finger positions, and orientations that match ISL gestures.
-
-The possible gestures are: ${GESTURE_LABELS.join(", ")}
-
-If no hand gesture is visible or the image is unclear, use label "none" with confidence 0.`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Example: Call your custom API
+    const response = await fetch(CUSTOM_API_ENDPOINT, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
+        ...(CUSTOM_API_KEY && { "Authorization": `Bearer ${CUSTOM_API_KEY}` }),
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: { url: image },
-              },
-              {
-                type: "text",
-                text: "What Indian Sign Language gesture is shown in this image? Analyze the hand shape carefully.",
-              },
-            ],
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "detect_gesture",
-              description: "Report the detected ISL gesture from the image",
-              parameters: {
-                type: "object",
-                properties: {
-                  label: {
-                    type: "string",
-                    description: "The detected gesture label. Must be one of the known ISL gestures or 'none'.",
-                  },
-                  confidence: {
-                    type: "number",
-                    description: "Confidence score from 0-100",
-                  },
-                  reasoning: {
-                    type: "string",
-                    description: "Brief explanation of why this gesture was identified",
-                  },
-                },
-                required: ["label", "confidence", "reasoning"],
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "detect_gesture" } },
+        image: image,
+        // Add any other parameters your API needs
+        model: "sign-language-detection",
+        confidence_threshold: 0.85
       }),
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        const retryAfterHeader = response.headers.get("retry-after");
-        const parsedRetryAfter = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : NaN;
-        const retryAfterSeconds = Number.isFinite(parsedRetryAfter) && parsedRetryAfter > 0 ? parsedRetryAfter : 30;
-
-        // Return HTTP 200 so the caller/UI doesn't treat rate-limits as a fatal runtime error;
-        // clients should respect `rateLimited` and pause before sending more frames.
-        return new Response(
-          JSON.stringify({
-            rateLimited: true,
-            retryAfterSeconds,
-            error: "Rate limit exceeded, please try again later.",
-          }),
-          {
-            status: 200,
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "application/json",
-              "X-Rate-Limited": "true",
-              "Retry-After": String(retryAfterSeconds),
-            },
-          }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
-      return new Response(JSON.stringify({ error: "AI analysis failed" }), {
+      const errorText = await response.text();
+      console.error("Custom API error:", response.status, errorText);
+      return new Response(JSON.stringify({ 
+        error: "Gesture detection failed",
+        details: errorText
+      }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const result = await response.json();
+    
+    // Validate and normalize the response from your API
+    // Adjust this based on your API's response format
+    const detectedLabel = result.label || result.gesture || result.prediction || "none";
+    const confidence = result.confidence || result.score || 0;
+    const reasoning = result.reasoning || result.explanation || "";
 
-    if (!toolCall) {
-      return new Response(JSON.stringify({ label: "none", confidence: 0, reasoning: "No detection" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const result = JSON.parse(toolCall.function.arguments);
-
-    // Validate and normalize the label
     const matchedLabel = GESTURE_LABELS.find(
-      (l) => l.toLowerCase() === result.label?.toLowerCase(),
+      (l) => l.toLowerCase() === detectedLabel.toLowerCase(),
     );
 
     return new Response(
       JSON.stringify({
         label: matchedLabel || "none",
-        confidence: Math.min(100, Math.max(0, Math.round(result.confidence || 0))),
-        reasoning: result.reasoning || "",
+        confidence: Math.min(100, Math.max(0, Math.round(confidence * 100))),
+        reasoning: reasoning,
+        // Include any additional data from your API
+        raw_response: result
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

@@ -8,11 +8,11 @@ export interface DetectionResult {
   reasoning?: string;
 }
 
-const DETECT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/detect-gesture`;
+const DETECT_URL = `${import.meta.env?.VITE_SUPABASE_URL || ""}/functions/v1/detect-gesture`;
 
 /**
  * Gesture detector that captures webcam frames and sends them
- * to the Lovable AI backend for Indian Sign Language recognition.
+ * to your custom API backend for Sign Language recognition.
  */
 export function useGestureDetector() {
   const [isDetecting, setIsDetecting] = useState(false);
@@ -96,7 +96,7 @@ export function useGestureDetector() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${import.meta.env?.VITE_SUPABASE_ANON_KEY || ""}`,
         },
         body: JSON.stringify({ image }),
       });

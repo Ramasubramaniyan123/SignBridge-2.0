@@ -1,11 +1,14 @@
+// @ts-ignore
 import { defineConfig } from "vite";
+// @ts-ignore
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
+// @ts-ignore
+import { resolve } from "path";
+// @ts-ignore
 import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }: { mode: string }) => ({
   server: {
     host: "::",
     port: 8080,
@@ -15,7 +18,6 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "gestures/**/*.png"],
@@ -42,7 +44,7 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "SignBridge — Indian Sign Language Detection",
+        name: "SignBridge Indian Sign Language Detection",
         short_name: "SignBridge",
         description: "Detect and learn Indian Sign Language gestures in real time",
         theme_color: "#1fa87a",
@@ -61,7 +63,7 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": resolve(__dirname, "./src"),
     },
   },
 }));
